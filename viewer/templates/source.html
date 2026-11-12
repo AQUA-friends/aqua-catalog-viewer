@@ -41,6 +41,11 @@
     <p class="mono">{{ info.levels|join(", ") if info.levels is not string else info.levels }}</p>
   </details>
   {% endif %}
+  {% if info.levelist is defined and info.levelist != info.levels %}
+  <details><summary>Request levelist <span class="muted">({{ info.levelist|length if info.levelist is not string else 1 }})</span></summary>
+    <p class="mono">{{ info.levelist|join(", ") if info.levelist is not string else info.levelist }}</p>
+  </details>
+  {% endif %}
   {% if info.variables %}
   <details><summary>Variables <span class="muted">({{ info.variables|length }} ECMWF param IDs)</span></summary>
     <p class="mono params">{% for v in info.variables %}{% if v is integer %}<a href="{{ param_db_url }}{{ v }}" target="_blank" rel="noopener" title="{% if param_names.get(v) %}{{ param_names[v].short }} · {{ param_names[v].name }} (ECMWF param {{ v }}){% else %}ECMWF parameter {{ v }} in the parameter database{% endif %}">{{ v }}</a>{% else %}{{ v }}{% endif %}{{ ", " if not loop.last }}{% endfor %}</p>

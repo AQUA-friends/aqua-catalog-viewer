@@ -146,7 +146,10 @@ def source_info(spec):
         "timestep": args.get("timestep"),
         "variables": meta.get("variables"),
         "levtype": req.get("levtype"),
-        "levels": req.get("levelist", meta.get("levels")),
+        # metadata.levels holds the physical values (e.g. metres for the ocean); the request's
+        # levelist is the list of level indices/IDs, which for o3d does not match them
+        "levels": meta.get("levels", req.get("levelist")),
+        "levelist": req.get("levelist") if "levels" in meta else None,
     }
     return {k: v for k, v in info.items() if v is not None}
 

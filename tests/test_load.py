@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from viewer.load import load_repo, walk
+from viewer.load import load_repo, source_info, walk
 
 CATALOG = """
 sources:
@@ -74,6 +74,13 @@ class LoadTests(unittest.TestCase):
         self.assertEqual((info["start"], info["end"]), ("19900101T0000", "20141231T2300"))
         self.assertEqual((info["fixer"], info["grid"], info["levtype"]), ("fx", "hpz7", "pl"))
         self.assertEqual(info["levels"], [500, 850])
+        self.assertNotIn("levelist", info)  # same as levels, nothing to add
+
+    def test_metadata_levels_take_precedence_over_levelist(self):
+        info = source_info({"metadata": {"levels": [1.0, 5.0, 10.0]},
+                            "args": {"request": {"levtype": "o3d", "levelist": [1, 2, 3]}}})
+        self.assertEqual(info["levels"], [1.0, 5.0, 10.0])
+        self.assertEqual(info["levelist"], [1, 2, 3])
 
     def test_relative_repo_path(self):
         """CI passes `--repos-dir repos`, a relative path."""
