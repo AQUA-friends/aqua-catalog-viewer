@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ site_title }}{% endblock %}</title>
+<link rel="stylesheet" href="{{ root }}static/style.css">
+</head>
+<body data-root="{{ root }}">
+<header class="top">
+  <a class="brand" href="{{ root }}index.html">{{ site_title }}</a>
+  <div class="search">
+    <input id="q" type="search" placeholder="Search models, experiments, sources…" autocomplete="off" aria-label="Search">
+    <ul id="results" hidden></ul>
+  </div>
+</header>
+<main>
+  {% if crumbs %}
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="{{ root }}index.html">Catalogs</a>
+    {% for label, url in crumbs %}
+    <span aria-hidden="true">/</span>
+    {% if loop.last %}<span>{{ label }}</span>{% else %}<a href="{{ root }}{{ url }}">{{ label }}</a>{% endif %}
+    {% endfor %}
+  </nav>
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+<footer>Generated {{ generated }}</footer>
+<script src="{{ root }}static/app.js" defer></script>
+</body>
+</html>

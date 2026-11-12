@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · {{ site_title }}{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+{% if leaf.description %}<p class="lead">{{ leaf.description|clean }}</p>{% endif %}
+
+<section>
+  <h2>Open this source</h2>
+  <div class="tabs" id="snippets">
+    <div class="tablist" role="tablist">
+      {% for t in tabs %}
+      <button role="tab" data-tab="{{ t.id }}" class="{{ 'on' if loop.first }}">{{ t.label }}</button>
+      {% endfor %}
+      {% if engine_docs_url and leaf.driver == "gsv" %}<a class="small" href="{{ engine_docs_url }}">engine docs ↗</a>{% endif %}
+    </div>
+    {% for t in tabs %}
+    <div class="panel" data-panel="{{ t.id }}" {{ 'hidden' if not loop.first }}>
+      <button class="copy" data-copy>Copy</button>
+      <pre><code>{{ t.code }}</code></pre>
+      {% if t.note %}<p class="muted small">{{ t.note }}{% if t.id == "yaml" and blob %} <a href="{{ blob }}">View {{ source_rel }} ↗</a>{% endif %}</p>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section>
+  <h2>Details</h2>
+  <dl class="info">
+    <dt>Driver</dt><dd>{% if leaf.driver %}<span class="tag">{{ leaf.driver }}</span>{% else %}placeholder (no data){% endif %}</dd>
+    {% if info.grid %}<dt>Grid</dt><dd>{{ info.grid }}</dd>{% endif %}
+    {% if info.fixer %}<dt>Fixer</dt><dd>{{ info.fixer }}</dd>{% endif %}
+    {% if period %}<dt>Period</dt><dd>{{ info.start|date(true) }} → {{ info.end|date(true) if info.end else "?" }}</dd>{% endif %}
+    {% if info.bridge_start %}<dt>Bridge from</dt><dd>{{ info.bridge_start|date }}</dd>{% endif %}
+    {% if info.savefreq %}<dt>Save frequency</dt><dd>{{ info.savefreq }}</dd>{% endif %}
+    {% if info.timestep %}<dt>Timestep</dt><dd>{{ info.timestep }}</dd>{% endif %}
+    {% if info.levtype %}<dt>Level type</dt><dd>{{ info.levtype }}{% if levtypes.get(info.levtype) %} <span class="muted">({{ levtypes[info.levtype] }})</span>{% endif %}</dd>{% endif %}
+  </dl>
+
+  {% if info.levels %}
+  <details><summary>Levels <span class="muted">({{ info.levels|length if info.levels is not string else 1 }})</span></summary>
+    <p class="mono">{{ info.levels|join(", ") if info.levels is not string else info.levels }}</p>
+  </details>
+  {% endif %}
+  {% if info.variables %}
+  <details><summary>Variables <span class="muted">({{ info.variables|length }} ECMWF param IDs)</span></summary>
+    <p class="mono">{{ info.variables|join(", ") }}</p>
+  </details>
+  {% endif %}
+
+  {% if leaf.parameters %}
+  <h3>Parameters</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Name</th><th>Type</th><th>Default</th><th>Allowed</th><th>Description</th></tr></thead>
+    <tbody>
+      {% for name, p in leaf.parameters.items() %}
+      <tr><td class="mono">{{ name }}</td><td>{{ p.type if p is mapping else "" }}</td>
+          <td class="mono">{{ p.default if p is mapping and p.default is not none else "" }}</td>
+          <td class="mono">{{ p.allowed|join(", ") if p is mapping and p.allowed else "" }}</td>
+          <td class="muted">{{ p.description if p is mapping else "" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

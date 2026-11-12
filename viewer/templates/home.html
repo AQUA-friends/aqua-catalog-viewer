@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Catalogs</h1>
+<p class="lead">Browse the intake catalogs and copy the code to open a source with AQUA or plain intake.</p>
+{% for repo in repos %}
+<section>
+  <h2>{{ repo.name }}
+    {% if repo.commit %}<span class="muted small">snapshot {{ repo.commit }}</span>{% endif %}
+    {% if repo.url %}<a class="small" href="{{ repo.url }}">repository ↗</a>{% endif %}
+  </h2>
+  <div class="grid">
+    {% for c in repo.catalogs %}
+    <a class="card" href="{{ root }}{{ c.url }}">
+      <h3>{{ c.name }}</h3>
+      <p class="muted">{{ c.models }} models · {{ c.experiments }} experiments · {{ c.sources }} sources</p>
+      <p class="chips">{% for d in c.drivers %}<span class="tag">{{ d }}</span>{% endfor %}</p>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

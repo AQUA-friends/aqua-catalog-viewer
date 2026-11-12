@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · {{ site_title }}{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+{% if description %}<p class="lead">{{ description }}</p>{% endif %}
+{% if chips %}<p class="chips">{% for k, v in chips %}<span class="tag"><b>{{ k }}</b> {{ v }}</span>{% endfor %}</p>{% endif %}
+{% if note %}<p class="callout">{{ note }}</p>{% endif %}
+
+{% if nodes %}
+<div class="grid">
+  {% for n in nodes %}
+  <a class="card" href="{{ root }}{{ n.url }}">
+    <h3>{{ n.name }}</h3>
+    {% if n.description %}<p class="muted">{{ n.description }}</p>{% endif %}
+    {% if n.chips %}<p class="chips">{% for k, v in n.chips %}<span class="tag"><b>{{ k }}</b> {{ v }}</span>{% endfor %}</p>{% endif %}
+    <p class="muted small">{{ n.n_sources }} sources{% if n.drivers %} · {{ n.drivers|join(", ") }}{% endif %}</p>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if rows %}
+<section class="filterable">
+  <h2>Sources <span class="muted small" id="rowcount">{{ rows|length }}</span></h2>
+  <div class="controls">
+    <input id="rowfilter" type="search" placeholder="Filter sources…" aria-label="Filter sources">
+    <div class="chipbar" id="chipbar"></div>
+  </div>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Source</th><th>Description</th><th>Driver</th><th>Grid</th><th>Levels</th><th>Period</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr data-driver="{{ r.driver }}" data-levtype="{{ r.levtype }}" data-grid="{{ r.grid }}">
+        <td><a href="{{ root }}{{ r.url }}">{{ r.name }}</a></td>
+        <td class="muted">{{ r.description }}</td>
+        <td><span class="tag">{{ r.driver }}</span></td>
+        <td>{{ r.grid }}</td>
+        <td>{{ r.levtype }}</td>
+        <td class="nowrap">{{ r.period }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+
+{% if readme %}
+<section class="readme">
+  <h2>README</h2>
+  {{ readme|safe }}
+</section>
+{% endif %}
+{% endblock %}

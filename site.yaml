@@ -1,0 +1,25 @@
+# Configuration of the catalog viewer.
+title: AQUA catalog viewer
+
+# Engines offered as AQUA tabs for gsv sources. The first one is the default
+# and is shown without `engine=`.
+engines: [gsv, polytope, z3fdb]
+# Optional link shown next to the engine tabs (leave empty to hide it).
+engine_docs_url: ""
+
+# Repos to browse. Each repo must contain catalogs/<name>/catalog.yaml.
+#   include:  only these catalogs are loaded (unknown names fail the build)
+#   exclude:  these catalogs are skipped
+#   strict:   true  -> validation problems fail the build
+#             false -> validation problems are only reported as warnings
+#   blob_url: base for "view file" links (repo URL + /blob/<branch>)
+repos:
+  - name: Climate-DT-catalog
+    path: ~/src/Climate-DT-catalog
+    include: [climatedt-gen2, climatedt-phase1, nextgems4, obs]
+    strict: false
+    blob_url: https://github.com/DestinE-Climate-DT/Climate-DT-catalog/blob/main
+  - name: climate-dt-evaluation-catalog
+    path: ~/src/climate-dt-evaluation-catalog
+    strict: true
+    blob_url: https://gitlab.dkrz.de/destine-modelevaluation/climate-dt-evaluation-catalog/-/blob/main
