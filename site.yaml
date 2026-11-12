@@ -13,13 +13,22 @@ engine_docs_url: ""
 #   strict:   true  -> validation problems fail the build
 #             false -> validation problems are only reported as warnings
 #   blob_url: base for "view file" links (repo URL + /blob/<branch>)
+#   path:     local checkout, used when building on your machine
+#   url/ref:  where CI clones it from (python -m viewer.fetch), into <repos-dir>/<name>
+#   auth:     private repos only: names of the environment variables holding the
+#             credentials (in CI they come from GitHub Actions secrets)
 repos:
   - name: Climate-DT-catalog
     path: ~/src/Climate-DT-catalog
+    url: https://github.com/DestinE-Climate-DT/Climate-DT-catalog.git
+    ref: main
     include: [climatedt-gen2, climatedt-phase1, nextgems4, obs]
     strict: false
     blob_url: https://github.com/DestinE-Climate-DT/Climate-DT-catalog/blob/main
   - name: climate-dt-evaluation-catalog
     path: ~/src/climate-dt-evaluation-catalog
+    url: https://gitlab.dkrz.de/destine-modelevaluation/climate-dt-evaluation-catalog.git
+    ref: main
+    auth: {user_env: GITLAB_USER, token_env: GITLAB_TOKEN}
     strict: true
     blob_url: https://gitlab.dkrz.de/destine-modelevaluation/climate-dt-evaluation-catalog/-/blob/main

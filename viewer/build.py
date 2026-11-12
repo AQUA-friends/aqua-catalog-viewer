@@ -19,7 +19,7 @@ import markdown
 import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from .load import load_site, walk
+from .load import load_site, repo_path, walk
 from .snippets import fmt_date, leaf_tabs
 
 HERE = Path(__file__).parent
@@ -54,8 +54,8 @@ def period(info):
 
 
 class Builder:
-    def __init__(self, cfg, site, out):
-        self.cfg, self.site, self.out = cfg, site, Path(out)
+    def __init__(self, cfg, site, out, repos_dir=None):
+        self.cfg, self.site, self.out, self.repos_dir = cfg, site, Path(out), repos_dir
         self.engines = cfg.get("engines") or ["gsv"]
         self.search, self.paths = [], set()
         self.env = Environment(loader=FileSystemLoader(HERE / "templates"),
@@ -124,7 +124,7 @@ class Builder:
                    n_sources=self.counts(entries)[0])
 
     def build_leaf(self, rcfg, cat, leaf, url, crumbs):
-        rel = Path(leaf["source_file"]).relative_to(Path(rcfg["path"]).expanduser())
+        rel = Path(leaf["source_file"]).relative_to(repo_path(rcfg, self.repos_dir))
         blob = f"{rcfg['blob_url']}/{rel}" if rcfg.get("blob_url") else None
         info = leaf.get("info", {})
         full = " / ".join([cat["name"], *leaf["trail"]])
@@ -145,7 +145,7 @@ class Builder:
                              "models": sum(1 for d, e in nodes if d == 1 and e["kind"] == "node"),
                              "experiments": sum(1 for d, e in nodes if d == 2 and e["kind"] == "node"),
                              "sources": n, "drivers": sorted(drivers)})
-            repos.append({"name": repo["name"], "commit": git_commit(Path(rcfg["path"]).expanduser()),
+            repos.append({"name": repo["name"], "commit": git_commit(repo_path(rcfg, self.repos_dir)),
                           "url": (rcfg.get("blob_url") or "").rsplit("/blob/", 1)[0].rsplit("/-", 1)[0],
                           "catalogs": cats})
         self.write("index.html", "home.html", crumbs=[], repos=repos)
@@ -174,17 +174,18 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config", default="site.yaml")
     ap.add_argument("--out", default="public")
+    ap.add_argument("--repos-dir", help="read repos from <dir>/<name> instead of their `path`")
     args = ap.parse_args(argv)
 
     cfg = yaml.safe_load(Path(args.config).read_text())
-    site = load_site(args.config)
+    site = load_site(args.config, args.repos_dir)
     errors = [p for p in site["problems"] if p["level"] == "error"]
     for p in site["problems"]:
         print(f"{p['level'].upper():7} [{p['repo']}] {p['where']}: {p['msg']}", file=sys.stderr)
     if errors:
         print(f"{len(errors)} error(s): not building", file=sys.stderr)
         return 1
-    pages = Builder(cfg, site, args.out).run()
+    pages = Builder(cfg, site, args.out, args.repos_dir).run()
     print(f"built {pages} pages into {args.out}/")
     return 0
 

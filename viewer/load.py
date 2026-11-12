@@ -162,10 +162,17 @@ def load_catalog(loader, cdir):
     }
 
 
-def load_repo(cfg):
+def repo_path(cfg, repos_dir=None):
+    """Where a repo lives: <repos_dir>/<name> when a repos dir is given (CI), else its `path`."""
+    if repos_dir:
+        return Path(repos_dir) / cfg["name"]
+    return Path(cfg["path"]).expanduser()
+
+
+def load_repo(cfg, repos_dir=None):
     name = cfg["name"]
     loader = Loader(name, bool(cfg.get("strict", False)))
-    root = Path(cfg["path"]).expanduser() / "catalogs"
+    root = repo_path(cfg, repos_dir) / "catalogs"
     if not root.is_dir():
         loader.problem(root, "no catalogs/ directory", hard=True)
         return {"name": name, "catalogs": []}, loader.problems
@@ -184,11 +191,11 @@ def load_repo(cfg):
     return {"name": name, "catalogs": catalogs}, loader.problems
 
 
-def load_site(config_path):
+def load_site(config_path, repos_dir=None):
     cfg = yaml.safe_load(Path(config_path).read_text())
     repos, problems = [], []
     for repo_cfg in cfg["repos"]:
-        repo, probs = load_repo(repo_cfg)
+        repo, probs = load_repo(repo_cfg, repos_dir)
         repos.append(repo)
         problems += probs
     return {"title": cfg.get("title", "Catalog viewer"), "repos": repos, "problems": problems}
@@ -225,11 +232,12 @@ def stats(site):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config", default="site.yaml")
+    ap.add_argument("--repos-dir", help="read repos from <dir>/<name> instead of their `path`")
     ap.add_argument("--stats", action="store_true", help="print counts per catalog")
     ap.add_argument("--dump", metavar="FILE", help="write the normalized tree as JSON")
     args = ap.parse_args(argv)
 
-    site = load_site(args.config)
+    site = load_site(args.config, args.repos_dir)
     if args.stats:
         print(stats(site))
     if args.dump:

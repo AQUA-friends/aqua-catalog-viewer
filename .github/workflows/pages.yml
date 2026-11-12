@@ -1,0 +1,58 @@
+name: Build and deploy site
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 1" # every Monday 05:00 UTC, to pick up catalog changes
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -t .
+
+      # Clones every repo of site.yaml into repos/<name>. The private GitLab repo
+      # needs the GITLAB_USER and GITLAB_TOKEN repository secrets (read_repository).
+      - name: Fetch catalog repos
+        env:
+          GITLAB_USER: ${{ secrets.GITLAB_USER }}
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: python -m viewer.fetch --repos-dir repos
+
+      - name: Build site
+        run: python -m viewer.build --repos-dir repos --out public
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

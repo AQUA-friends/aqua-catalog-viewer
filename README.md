@@ -23,18 +23,38 @@ python3 -m http.server -d public 8000      # preview at http://localhost:8000
 validation problems are errors (`strict`), the AQUA engines offered for `gsv` sources, and the
 `blob_url` used for "view file" links.
 
-## Publish (manual, for now)
+## Publish
+
+### GitHub Actions (`.github/workflows/pages.yml`)
+
+Runs every Monday and on demand (Actions tab → "Build and deploy site" → Run workflow, or
+`gh workflow run pages.yml`). It runs the tests, clones the repos of `site.yaml` into `repos/`
+(`python -m viewer.fetch`), builds with `--repos-dir repos` and deploys with `actions/deploy-pages`.
+In Settings → Pages the source must be "GitHub Actions".
+
+The evaluation catalog is on a private GitLab, so the workflow needs two repository secrets,
+`GITLAB_USER` and `GITLAB_TOKEN`: a GitLab project **deploy token** with only the `read_repository`
+scope (it has its own user name), or a project access token (Reporter, `read_repository`).
+Set them without echoing the token:
+
+```bash
+gh secret set GITLAB_USER --repo AQUA-friends/aqua-catalog-viewer
+gh secret set GITLAB_TOKEN --repo AQUA-friends/aqua-catalog-viewer   # paste the token at the prompt
+```
+
+An expiring token makes the scheduled run fail at "Fetch catalog repos"; create a new one and
+re-run `gh secret set GITLAB_TOKEN`.
+
+### Manual fallback
 
 ```bash
 scripts/deploy.sh
 ```
 
-It builds the site and force-pushes it to the `gh-pages` branch; GitHub Pages serves that branch.
-`gh-pages` is generated output, never edit it by hand.
+Builds from your local checkouts and force-pushes `public/` to the `gh-pages` branch. Only useful
+while Pages is set to "Deploy from a branch"; `gh-pages` is generated output, never edit it by hand.
 
 ## Next
 
-- Replace the manual deploy by a GitHub Actions workflow (checkout the catalog repos, build, deploy
-  with `actions/deploy-pages`), on a schedule and on demand. The GitLab evaluation repo needs a
-  read-only token stored as an Actions secret.
+- Rebuild when a catalog repo changes (a `repository_dispatch` from Climate-DT-catalog), not only weekly.
 - Optional: by-source page, per-machine paths, password gate.
