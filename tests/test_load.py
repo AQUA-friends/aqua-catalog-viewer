@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -73,6 +74,19 @@ class LoadTests(unittest.TestCase):
         self.assertEqual((info["start"], info["end"]), ("19900101T0000", "20141231T2300"))
         self.assertEqual((info["fixer"], info["grid"], info["levtype"]), ("fx", "hpz7", "pl"))
         self.assertEqual(info["levels"], [500, 850])
+
+    def test_relative_repo_path(self):
+        """CI passes `--repos-dir repos`, a relative path."""
+        with tempfile.TemporaryDirectory() as tmp:
+            make_repo(Path(tmp) / "repos" / "t", BASE)
+            cwd = os.getcwd()
+            os.chdir(tmp)
+            try:
+                repo, problems = load_repo({"name": "t", "path": "unused", "strict": True}, repos_dir="repos")
+            finally:
+                os.chdir(cwd)
+        self.assertEqual(problems, [])
+        self.assertEqual(len(list(walk(repo["catalogs"][0]["children"]))), 6)
 
     def test_include_and_exclude(self):
         files = {**BASE, "c2/catalog.yaml": "sources: {}"}

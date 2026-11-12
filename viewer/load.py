@@ -99,12 +99,14 @@ class Loader:
         if not isinstance(target, str):
             self.problem(where, "yaml_file_cat without `args.path`")
             return []
-        target = Path(CATALOG_DIR.sub(str(Path(path).parent), target))
+        here = Path(path).parent
+        if CATALOG_DIR.search(target):
+            target = Path(CATALOG_DIR.sub(str(here), target))  # already rooted at this file's folder
+        else:
+            target = here / target  # plain relative path (a no-op for absolute ones)
         if "{{" in str(target):
             self.problem(where, f"unresolved template in path: {target}", hard=True)
             return []
-        if not target.is_absolute():
-            target = Path(path).parent / target
         if not target.exists():
             self.problem(where, f"referenced file not found: {target}", hard=True)
             return []
