@@ -20,6 +20,7 @@ import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from .load import load_site, repo_path, walk
+from .params import fetch_names
 from .snippets import fmt_date, leaf_tabs
 
 HERE = Path(__file__).parent
@@ -63,7 +64,10 @@ class Builder:
                                autoescape=select_autoescape(["html"]), trim_blocks=True, lstrip_blocks=True)
         self.env.filters["clean"] = clean
         self.env.filters["date"] = fmt_date
+        ids = {v for repo in site["repos"] for cat in repo["catalogs"] for _, e in walk(cat["children"])
+               for v in (e.get("info", {}).get("variables") or []) if isinstance(v, int)}
         self.env.globals.update(
+            param_names=fetch_names(ids),
             site_title=site["title"], levtypes=LEVTYPES, engine_docs_url=cfg.get("engine_docs_url") or "",
             param_db_url=cfg.get("param_db_url") or PARAM_DB_URL,
             generated=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))

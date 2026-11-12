@@ -43,7 +43,7 @@
   {% endif %}
   {% if info.variables %}
   <details><summary>Variables <span class="muted">({{ info.variables|length }} ECMWF param IDs)</span></summary>
-    <p class="mono params">{% for v in info.variables %}{% if v is integer %}<a href="{{ param_db_url }}{{ v }}" target="_blank" rel="noopener" title="ECMWF parameter {{ v }} in the parameter database">{{ v }}</a>{% else %}{{ v }}{% endif %}{{ ", " if not loop.last }}{% endfor %}</p>
+    <p class="mono params">{% for v in info.variables %}{% if v is integer %}<a href="{{ param_db_url }}{{ v }}" target="_blank" rel="noopener" title="{% if param_names.get(v) %}{{ param_names[v].short }} · {{ param_names[v].name }} (ECMWF param {{ v }}){% else %}ECMWF parameter {{ v }} in the parameter database{% endif %}">{{ v }}</a>{% else %}{{ v }}{% endif %}{{ ", " if not loop.last }}{% endfor %}</p>
   </details>
   {% endif %}
 
