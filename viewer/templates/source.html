@@ -43,7 +43,7 @@
   {% endif %}
   {% if info.variables %}
   <details><summary>Variables <span class="muted">({{ info.variables|length }} ECMWF param IDs)</span></summary>
-    <p class="mono">{{ info.variables|join(", ") }}</p>
+    <p class="mono params">{% for v in info.variables %}{% if v is integer %}<a href="{{ param_db_url }}{{ v }}" target="_blank" rel="noopener" title="ECMWF parameter {{ v }} in the parameter database">{{ v }}</a>{% else %}{{ v }}{% endif %}{{ ", " if not loop.last }}{% endfor %}</p>
   </details>
   {% endif %}
 

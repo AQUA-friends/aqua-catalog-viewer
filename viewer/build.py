@@ -23,6 +23,7 @@ from .load import load_site, repo_path, walk
 from .snippets import fmt_date, leaf_tabs
 
 HERE = Path(__file__).parent
+PARAM_DB_URL = "https://codes.ecmwf.int/grib/param-db/"  # + ECMWF param id
 LEVTYPES = {"sfc": "surface", "sol": "soil", "pl": "pressure levels", "o2d": "ocean 2D",
             "o3d": "ocean 3D", "ml": "model levels", "hl": "height levels"}
 NODE_CHIPS = [("exp", "expid"), ("atm", "resolution_atm"), ("oce", "resolution_oce"),
@@ -64,6 +65,7 @@ class Builder:
         self.env.filters["date"] = fmt_date
         self.env.globals.update(
             site_title=site["title"], levtypes=LEVTYPES, engine_docs_url=cfg.get("engine_docs_url") or "",
+            param_db_url=cfg.get("param_db_url") or PARAM_DB_URL,
             generated=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
 
     # -- output ----------------------------------------------------------

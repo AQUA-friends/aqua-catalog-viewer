@@ -6,6 +6,9 @@ title: AQUA catalog viewer
 engines: [gsv, polytope, z3fdb]
 # Optional link shown next to the engine tabs (leave empty to hide it).
 engine_docs_url: ""
+# Base URL for the ECMWF parameter links on source pages (the param ID is appended).
+# Defaults to https://codes.ecmwf.int/grib/param-db/ when omitted.
+# param_db_url: https://codes.ecmwf.int/grib/param-db/
 
 # Repos to browse. Each repo must contain catalogs/<name>/catalog.yaml.
 #   include:  only these catalogs are loaded (unknown names fail the build)
