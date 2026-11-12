@@ -45,14 +45,8 @@ gh secret set GITLAB_TOKEN --repo AQUA-friends/aqua-catalog-viewer   # paste the
 An expiring token makes the scheduled run fail at "Fetch catalog repos"; create a new one and
 re-run `gh secret set GITLAB_TOKEN`.
 
-### Manual fallback
-
-```bash
-scripts/deploy.sh
-```
-
-Builds from your local checkouts and force-pushes `public/` to the `gh-pages` branch. Only useful
-while Pages is set to "Deploy from a branch"; `gh-pages` is generated output, never edit it by hand.
+There is no manual deploy path: Pages only serves what this workflow uploads. To check a change
+before pushing, build locally (see above).
 
 ## Next
 
