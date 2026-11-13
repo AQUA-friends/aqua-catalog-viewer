@@ -12,6 +12,7 @@
     {% for c in repo.catalogs %}
     <a class="card" href="{{ root }}{{ c.url }}">
       <h3>{{ c.name }}</h3>
+      {% if c.description %}<p class="desc">{{ c.description }}</p>{% endif %}
       <p class="muted">{{ c.models }} models · {{ c.experiments }} experiments · {{ c.sources }} sources</p>
       <p class="chips">{% for d in c.drivers %}<span class="tag">{{ d }}</span>{% endfor %}</p>
     </a>

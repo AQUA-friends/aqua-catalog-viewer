@@ -127,3 +127,4 @@ details p { margin: .5rem 0 0; }
   .info { grid-template-columns: 1fr; gap: 0; }
   .info dd { margin-bottom: .5rem; }
 }
+.card .desc { color: var(--text); font-size: .9rem; }

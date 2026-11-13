@@ -143,11 +143,15 @@ class Builder:
     def build_home(self):
         repos = []
         for repo, rcfg in zip(self.site["repos"], self.cfg["repos"]):
+            descs = rcfg.get("descriptions") or {}
+            for unknown in sorted(set(descs) - {c["name"] for c in repo["catalogs"]}):
+                print(f"WARNING [{repo['name']}] descriptions: `{unknown}` matches no loaded catalog", file=sys.stderr)
             cats = []
             for cat in repo["catalogs"]:
                 nodes = list(walk(cat["children"]))
                 n, drivers = self.counts(cat["children"])
                 cats.append({"name": cat["name"], "url": f"{slug(cat['name'])}/index.html",
+                             "description": (descs.get(cat["name"]) or "").strip(),
                              "models": sum(1 for d, e in nodes if d == 1 and e["kind"] == "node"),
                              "experiments": sum(1 for d, e in nodes if d == 2 and e["kind"] == "node"),
                              "sources": n, "drivers": sorted(drivers)})

@@ -18,6 +18,7 @@ engine_docs_url: ""
 #   blob_url: base for "view file" links (repo URL + /blob/<branch>)
 #   path:     local checkout, used when building on your machine
 #   url/ref:  where CI clones it from (python -m viewer.fetch), into <repos-dir>/<name>
+#   descriptions: optional map catalog name -> one short sentence shown on its homepage card
 #   auth:     private repos only: names of the environment variables holding the
 #             credentials (in CI they come from GitHub Actions secrets)
 repos:
@@ -26,6 +27,11 @@ repos:
     url: https://github.com/DestinE-Climate-DT/Climate-DT-catalog.git
     ref: main
     include: [climatedt-gen2, climatedt-phase1, nextgems4, obs]
+    descriptions:
+      climatedt-gen2: "Climate-DT Gen2 catalog. Polytope sources and LRA"
+      climatedt-phase1: "Climate-DT Gen1 catalog. Polytope sources and LRA"
+      nextgems4: "NextGEMS4 catalog, contains data available from Polytope and on Levante"
+      obs: "Observations catalog, data provided with DVC"
     strict: false
     blob_url: https://github.com/DestinE-Climate-DT/Climate-DT-catalog/blob/main
   - name: climate-dt-evaluation-catalog
@@ -35,3 +41,6 @@ repos:
     auth: {user_env: GITLAB_USER, token_env: GITLAB_TOKEN}
     strict: true
     blob_url: https://gitlab.dkrz.de/destine-modelevaluation/climate-dt-evaluation-catalog/-/blob/main
+    descriptions:
+      climatedt-gen2-eval: "Climate-DT gen2 catalog specifically tailored for evaluation on Levante project bk1580."
+      climatedt-gen2-atlas-indices: "Climate-DT gen2 catalog with CDS Atlas indices, specifically tailored for evaluation on Levante project bk1580."

@@ -20,8 +20,9 @@ python3 -m http.server -d public 8000      # preview at http://localhost:8000
 ## Configure
 
 `site.yaml` lists the repos to read (local paths), which catalogs to include or exclude, whether
-validation problems are errors (`strict`), the AQUA engines offered for `gsv` sources, and the
-`blob_url` used for "view file" links.
+validation problems are errors (`strict`), the AQUA engines offered for `gsv` sources, the
+`blob_url` used for "view file" links, and optional per-repo `descriptions` (catalog name → one
+sentence shown on the homepage card; unknown names only produce a warning).
 
 ## Publish
 
