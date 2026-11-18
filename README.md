@@ -52,4 +52,4 @@ before pushing, build locally (see above).
 ## Next
 
 - Rebuild when a catalog repo changes (a `repository_dispatch` from Climate-DT-catalog), not only weekly.
-- Optional: by-source page, per-machine paths, password gate.
+- Optional: by-source page, password gate.

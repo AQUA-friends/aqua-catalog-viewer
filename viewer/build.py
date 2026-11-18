@@ -137,7 +137,8 @@ class Builder:
         self.search.append({"t": full, "u": url, "d": clean(leaf["description"]), "k": leaf["driver"] or "placeholder",
                             "g": info.get("grid", "")})
         self.write(url, "source.html", crumbs=crumbs, leaf=leaf, info=info, period=period(info),
-                   title=leaf["name"], tabs=leaf_tabs(rcfg["name"], cat["name"], leaf, self.engines),
+                   title=leaf["name"], tabs=leaf_tabs(rcfg["name"], cat["name"], leaf, self.engines,
+                                  cat.get("variables"), cat.get("machines")),
                    blob=blob, source_rel=str(rel))
 
     def build_home(self):

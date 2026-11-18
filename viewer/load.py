@@ -3,9 +3,11 @@
 Structure produced (see load_site):
 
     site = {title, repos: [{name, catalogs: [catalog]}], problems: [...]}
-    catalog = {name, readme, children: [entry]}
+    catalog = {name, readme, variables, machines, children: [entry]}
+              variables: catalog-level template variables {name: default} (catalog.yaml metadata.parameters)
+              machines:  {machine: {name: value}} from the `intake:` blocks of machine.yaml
     entry   = node  {kind: "node", name, description, metadata, children, ...}
-            | leaf  {kind: "source"|"placeholder", name, driver, args, info, ...}
+            | leaf  {kind: "source"|"placeholder", name, driver, args, info, merge_keys, ...}
 
 The YAML is parsed directly (no intake import, no data access). A source whose
 driver is `yaml_file_cat` is a node: its `args.path` is followed recursively, so
@@ -23,6 +25,8 @@ from pathlib import Path
 import yaml
 
 CATALOG_DIR = re.compile(r"\{\{\s*CATALOG_DIR\s*\}\}")
+# YAML merge keys (`<<: *anchor`): PyYAML expands them, but intake 2.0.9 needs a patch (see snippets).
+MERGE_KEY = re.compile(r"^\s*(?:-\s+)?<<\s*:", re.M)
 MAX_DEPTH = 8
 
 
@@ -31,6 +35,7 @@ class Loader:
         self.repo = repo
         self.strict = strict
         self.problems = []
+        self.merge_files = set()  # files that use YAML merge keys
 
     # -- problems ---------------------------------------------------------
     def problem(self, where, msg, hard=False):
@@ -59,6 +64,8 @@ class Loader:
             self.problem(path, "catalog cycle or nesting too deep", hard=True)
             return []
         data = self.read_yaml(path)
+        if data and MERGE_KEY.search(Path(path).read_text()):
+            self.merge_files.add(path)
         sources = data.get("sources") or {}
         if not isinstance(sources, dict):
             self.problem(path, "`sources` is not a mapping", hard=True)
@@ -89,6 +96,7 @@ class Loader:
             return out
 
         out["kind"] = "placeholder" if driver is None else "source"
+        out["merge_keys"] = bool(seen & self.merge_files)  # this file or a parent: intake needs a patch
         out["args"] = args
         out["parameters"] = spec.get("parameters") or {}
         out["info"] = source_info(spec)
@@ -160,11 +168,32 @@ def load_catalog(loader, cdir):
         loader.problem(cdir, "no catalog.yaml", hard=True)
         return None
     readme = cdir / "README.md"
+    machine_file = cdir / "machine.yaml"
     return {
         "name": cdir.name,
         "readme": readme.read_text() if readme.exists() else None,
+        "variables": catalog_variables(loader.read_yaml(cat_file)),
+        "machines": machine_variables(loader.read_yaml(machine_file)) if machine_file.exists() else {},
         "children": loader.load_file(cat_file, [], set()),
     }
+
+
+def catalog_variables(data):
+    """{name: default} of the catalog-level parameters (`metadata.parameters` of catalog.yaml)."""
+    params = (data.get("metadata") or {}).get("parameters") if isinstance(data.get("metadata"), dict) else None
+    if not isinstance(params, dict):
+        return {}
+    return {k: (v.get("default") if isinstance(v, dict) else None) for k, v in params.items()}
+
+
+def machine_variables(data):
+    """{machine: {name: value}} from the `intake:` block of each machine in machine.yaml."""
+    out = {}
+    for name, spec in data.items():
+        intake = spec.get("intake") if isinstance(spec, dict) else None
+        if isinstance(intake, dict):
+            out[str(name)] = intake
+    return out
 
 
 def repo_path(cfg, repos_dir=None):

@@ -107,7 +107,11 @@ pre {
   margin: 0; padding: .9rem 1rem; overflow-x: auto; background: #0a1020; border: 1px solid var(--line);
   border-radius: 12px; font: .84rem/1.5 var(--mono); max-height: 70vh;
 }
-.copy { position: absolute; top: 1.2rem; right: 1.5rem; font-size: .78rem; padding: .1rem .7rem; background: var(--card); }
+.codebox { position: relative; }
+.copy { position: absolute; top: .5rem; right: .7rem; font-size: .78rem; padding: .1rem .7rem; background: var(--card); }
+.machines { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 .6rem; }
+.machines .muted { margin-right: .2rem; }
+pre[hidden] { display: none; }
 
 .info { display: grid; grid-template-columns: max-content 1fr; gap: .35rem 1.2rem; margin: 0 0 1rem; }
 .info dt { color: var(--muted); }
