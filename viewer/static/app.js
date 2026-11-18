@@ -20,18 +20,30 @@
     tabs.querySelectorAll("[data-panel]").forEach((p) => { p.hidden = p.dataset.panel !== id; });
     return true;
   };
+  // ---- machine choice for intake snippets (remembered across pages, e.g. levante) ----
+  const showMachine = (name) => {
+    if (!tabs || !tabs.querySelector(`[data-machine="${CSS.escape(name)}"]`)) return false;
+    tabs.querySelectorAll("[data-machine]").forEach((b) => b.classList.toggle("on", b.dataset.machine === name));
+    tabs.querySelectorAll("[data-machine-code]").forEach((p) => { p.hidden = p.dataset.machineCode !== name; });
+    return true;
+  };
   if (tabs) {
     const saved = store.get("tab");
     if (saved) showTab(saved);
+    const machine = store.get("machine");
+    if (machine) showMachine(machine);
   }
 
   document.addEventListener("click", (e) => {
     const tab = e.target.closest("[data-tab]");
     if (tab && showTab(tab.dataset.tab)) store.set("tab", tab.dataset.tab);
 
+    const machine = e.target.closest("[data-machine]");
+    if (machine && showMachine(machine.dataset.machine)) store.set("machine", machine.dataset.machine);
+
     const copy = e.target.closest("[data-copy]");
     if (copy) {
-      const text = copy.parentElement.querySelector("pre").textContent;
+      const text = copy.parentElement.querySelector("pre:not([hidden])").textContent;
       navigator.clipboard.writeText(text).then(() => {
         copy.textContent = "Copied";
         setTimeout(() => { copy.textContent = "Copy"; }, 1500);

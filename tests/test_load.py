@@ -70,11 +70,22 @@ class LoadTests(unittest.TestCase):
         self.assertEqual(entries["exp-a"]["kind"], "node")
         self.assertEqual(entries["merged"]["driver"], "gsv")  # inherited via <<
         self.assertEqual(entries["empty"]["kind"], "placeholder")
+        self.assertTrue(entries["z"]["merge_keys"])  # exp-a.yaml uses `<<: *base`
         info = entries["base"]["info"]
         self.assertEqual((info["start"], info["end"]), ("19900101T0000", "20141231T2300"))
         self.assertEqual((info["fixer"], info["grid"], info["levtype"]), ("fx", "hpz7", "pl"))
         self.assertEqual(info["levels"], [500, 850])
         self.assertNotIn("levelist", info)  # same as levels, nothing to add
+
+    def test_catalog_variables_and_machines(self):
+        files = dict(BASE)
+        files["c1/catalog.yaml"] = "metadata:\n  parameters:\n    LRA_PATH: {type: str, default: /lra}\n" + CATALOG
+        files["c1/machine.yaml"] = "levante:\n  paths: {grids: /g}\n  intake: {LRA_PATH: /work/lra}\nmn5:\n  paths: {grids: /g}\n"
+        repo, problems = load(files)
+        self.assertEqual(problems, [])
+        [cat] = repo["catalogs"]
+        self.assertEqual(cat["variables"], {"LRA_PATH": "/lra"})
+        self.assertEqual(cat["machines"], {"levante": {"LRA_PATH": "/work/lra"}})
 
     def test_metadata_levels_take_precedence_over_levelist(self):
         info = source_info({"metadata": {"levels": [1.0, 5.0, 10.0]},

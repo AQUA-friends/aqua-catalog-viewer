@@ -40,6 +40,43 @@ class SnippetTests(unittest.TestCase):
         self.assertFalse(plain_intake_ok(l))
         self.assertEqual(list(self.tabs(l)), ["aqua", "yaml"])
 
+    def test_intake_per_machine_for_catalog_variables(self):
+        l = leaf("netcdf", {"urlpath": "{{ LRA_PATH }}/{{ realization }}.nc"}, {"realization": {"default": 2}})
+        machines = {"levante": {"LRA_PATH": "/work/lra"}, "wilma": {"LRA_PATH": None}, "mn5": {"OTHER": "/x"}}
+        tabs = leaf_tabs("Repo", "cat", l, ENGINES, {"LRA_PATH": "/pfs/lra"}, machines)
+        intake = next(t for t in tabs if t["id"] == "intake")
+        # wilma sets it to null, mn5 does not list it, the default is a local path: only levante
+        self.assertEqual([c["name"] for c in intake["choices"]], ["levante"])
+        code = intake["choices"][0]["code"]
+        self.assertIn("    realization=2,\n    LRA_PATH='/work/lra',\n).to_dask()", code)
+        self.assertIn('._entries["s"]', code)
+        self.assertIn("synced", intake["note"])
+
+    def test_online_when_every_default_is_remote(self):
+        l = leaf("zarr", {"urlpath": "{{ ZARR_PATH }}/x.zarr"})
+        variables = {"ZARR_PATH": "s3://bucket/zarr"}
+        machines = {"levante": {"ZARR_PATH": "/work/zarr"}, "mn5": {}}
+        intake = next(t for t in leaf_tabs("Repo", "cat", l, ENGINES, variables, machines) if t["id"] == "intake")
+        self.assertEqual([c["name"] for c in intake["choices"]], ["levante", "online"])
+        self.assertIn("ZARR_PATH='s3://bucket/zarr'", intake["choices"][1]["code"])
+
+    def test_no_online_when_one_default_is_local(self):
+        l = leaf("zarr", {"urlpath": "{{ A }}/{{ B }}.zarr"})
+        tabs = leaf_tabs("Repo", "cat", l, ENGINES, {"A": "s3://a", "B": "/local"}, {})
+        self.assertEqual([t["id"] for t in tabs], ["aqua", "yaml"])
+
+    def test_undeclared_variable_has_no_intake_even_with_machines(self):
+        l = leaf("netcdf", {"urlpath": "{{ LRA_PATH }}/x.nc"})
+        tabs = leaf_tabs("Repo", "cat", l, ENGINES, {}, {"levante": {"LRA_PATH": "/work"}})
+        self.assertEqual([t["id"] for t in tabs], ["aqua", "yaml"])
+
+    def test_merge_key_patch_only_when_needed(self):
+        patch = "intake.utils.no_duplicates_constructor = yaml.SafeLoader.construct_yaml_map"
+        merged = self.tabs({**leaf("zarr", {"urlpath": "/x"}), "merge_keys": True})
+        self.assertIn(patch, merged["intake"])
+        self.assertLess(merged["intake"].index(patch), merged["intake"].index("intake.open_catalog"))
+        self.assertNotIn(patch, self.tabs(leaf("zarr", {"urlpath": "/x"}))["intake"])
+
     def test_non_three_level_trail_only_yaml(self):
         self.assertEqual(list(self.tabs(leaf("zarr", {"urlpath": "/x"}, trail=("a", "b", "c", "d")))), ["yaml"])
 

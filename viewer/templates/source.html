@@ -15,9 +15,24 @@
     </div>
     {% for t in tabs %}
     <div class="panel" data-panel="{{ t.id }}" {{ 'hidden' if not loop.first }}>
-      <button class="copy" data-copy>Copy</button>
-      <pre><code>{{ t.code }}</code></pre>
-      {% if t.note %}<p class="muted small">{{ t.note }}{% if t.id == "yaml" and blob %} <a href="{{ blob }}">View {{ source_rel }} ↗</a>{% endif %}</p>{% endif %}
+      {% if t.choices %}
+      <div class="machines" role="group" aria-label="Machine">
+        <span class="muted small">Machine</span>
+        {% for c in t.choices %}
+        <button type="button" class="chip{{ ' on' if loop.first }}" data-machine="{{ c.name }}"
+                {% if c.name == "online" %}title="Read the remote copy: works from any machine"{% endif %}>{{ c.name }}</button>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <div class="codebox">
+        <button class="copy" data-copy>Copy</button>
+        {% if t.choices %}
+        {% for c in t.choices %}<pre data-machine-code="{{ c.name }}" {{ 'hidden' if not loop.first }}><code>{{ c.code }}</code></pre>{% endfor %}
+        {% else %}
+        <pre><code>{{ t.code }}</code></pre>
+        {% endif %}
+      </div>
+      {% if t.note %}<p class="{{ 'callout small' if t.choices else 'muted small' }}">{{ t.note }}{% if t.id == "yaml" and blob %} <a href="{{ blob }}">View {{ source_rel }} ↗</a>{% endif %}</p>{% endif %}
     </div>
     {% endfor %}
   </div>
