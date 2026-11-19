@@ -8,6 +8,13 @@
     {% if repo.commit %}<span class="muted small">snapshot {{ repo.commit }}</span>{% endif %}
     {% if repo.url %}<a class="small" href="{{ repo.url }}">repository ↗</a>{% endif %}
   </h2>
+  {% if repo.clone %}
+  <div class="codebox clone">
+    <button class="copy" data-copy>Copy</button>
+    <pre><code>git clone {{ repo.clone }}</code></pre>
+  </div>
+  <p class="small"><span class="badge {{ 'open' if repo.open else 'private' }}">{{ 'open' if repo.open else 'private' }}</span>{% if not repo.open %} <span class="muted">access required to clone</span>{% endif %}</p>
+  {% endif %}
   <div class="grid">
     {% for c in repo.catalogs %}
     <a class="card" href="{{ root }}{{ c.url }}">

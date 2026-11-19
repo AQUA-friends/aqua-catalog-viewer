@@ -1,6 +1,6 @@
 import unittest
 
-from viewer.snippets import fmt_date, leaf_tabs, plain_intake_ok
+from viewer.snippets import fmt_date, install_blocks, leaf_tabs, plain_intake_ok
 
 ENGINES = ["gsv", "polytope", "z3fdb"]
 
@@ -93,6 +93,16 @@ class SnippetTests(unittest.TestCase):
         self.assertEqual(fmt_date("19900101T0000"), "1990-01-01")
         self.assertEqual(fmt_date("19900101T0600", time=True), "1990-01-01 06:00")
         self.assertEqual(fmt_date("complete"), "complete")
+
+
+class InstallTests(unittest.TestCase):
+    def test_open_repo_has_online_and_editable(self):
+        b = dict(install_blocks("Repo", "https://x/Repo.git", "cat", True))
+        self.assertEqual(b["Online"], "aqua add cat")
+        self.assertIn("-e path/to/Repo/catalogs/cat", b["Editable"])
+
+    def test_private_repo_is_editable_only(self):
+        self.assertEqual([l for l, _ in install_blocks("Repo", "u", "cat", False)], ["Editable"])
 
 
 if __name__ == "__main__":
