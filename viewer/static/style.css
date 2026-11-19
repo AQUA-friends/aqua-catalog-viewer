@@ -132,3 +132,6 @@ details p { margin: .5rem 0 0; }
   .info dd { margin-bottom: .5rem; }
 }
 .card .desc { color: var(--text); font-size: .9rem; }
+.badge { display: inline-block; padding: 0 .55rem; border: 1px solid currentColor; border-radius: 999px; font-size: .78rem; }
+.badge.open { color: #4ade80; }
+.badge.private { color: #fbbf24; }

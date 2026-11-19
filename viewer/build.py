@@ -21,7 +21,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from .load import load_site, repo_path, walk
 from .params import fetch_names
-from .snippets import fmt_date, leaf_tabs
+from .snippets import fmt_date, install_blocks, leaf_tabs
 
 HERE = Path(__file__).parent
 PARAM_DB_URL = "https://codes.ecmwf.int/grib/param-db/"  # + ECMWF param id
@@ -123,7 +123,8 @@ class Builder:
         readme = None
         if not trail and cat.get("readme"):
             readme = markdown.markdown(cat["readme"], extensions=["tables", "fenced_code"])
-        self.write(f"{base}/index.html", "node.html", crumbs=crumbs, title=(trail or [cat["name"]])[-1],
+        install = None if trail else install_blocks(rcfg["name"], rcfg.get("url", ""), cat["name"], not rcfg.get("auth"))
+        self.write(f"{base}/index.html", "node.html", crumbs=crumbs, title=(trail or [cat["name"]])[-1], install=install,
                    description=clean((parent or {}).get("description")),
                    chips=[(k, meta[m]) for k, m in NODE_CHIPS if meta.get(m) not in (None, "")],
                    note=note, nodes=nodes, rows=rows, readme=readme,
@@ -157,6 +158,7 @@ class Builder:
                              "experiments": sum(1 for d, e in nodes if d == 2 and e["kind"] == "node"),
                              "sources": n, "drivers": sorted(drivers)})
             repos.append({"name": repo["name"], "commit": git_commit(repo_path(rcfg, self.repos_dir)),
+                          "clone": rcfg.get("url", ""), "open": not rcfg.get("auth"),
                           "url": (rcfg.get("blob_url") or "").rsplit("/blob/", 1)[0].rsplit("/-", 1)[0],
                           "catalogs": cats})
         self.write("index.html", "home.html", crumbs=[], repos=repos)

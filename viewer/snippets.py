@@ -193,3 +193,12 @@ def leaf_tabs(repo_name, catalog, leaf, engines, variables=None, machines=None):
     tabs.append({"id": "yaml", "label": "YAML", "lang": "yaml", "code": leaf_yaml(leaf),
                  "note": "Resolved view: YAML anchors and merge keys are expanded."})
     return tabs
+
+
+def install_blocks(repo_name, url, catalog, is_open):
+    """[(label, code)] to install one catalog: online (open repos only) and editable."""
+    blocks = []
+    if is_open:
+        blocks.append(("Online", f"aqua add {catalog}"))
+    blocks.append(("Editable", f"git clone {url}\naqua add {catalog} -e path/to/{repo_name}/catalogs/{catalog}"))
+    return blocks

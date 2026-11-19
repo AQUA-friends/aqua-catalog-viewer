@@ -6,6 +6,19 @@
 {% if chips %}<p class="chips">{% for k, v in chips %}<span class="tag"><b>{{ k }}</b> {{ v }}</span>{% endfor %}</p>{% endif %}
 {% if note %}<p class="callout">{{ note }}</p>{% endif %}
 
+{% if install %}
+<section>
+  <h2>Install this catalog</h2>
+  {% for label, code in install %}
+  <p class="muted small">{{ label }}</p>
+  <div class="codebox">
+    <button class="copy" data-copy>Copy</button>
+    <pre><code>{{ code }}</code></pre>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
 {% if nodes %}
 <div class="grid">
   {% for n in nodes %}
