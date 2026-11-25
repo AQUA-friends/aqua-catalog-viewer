@@ -15,11 +15,18 @@
     </div>
     {% for t in tabs %}
     <div class="panel" data-panel="{{ t.id }}" {{ 'hidden' if not loop.first }}>
+      {% if t.badges %}
+      <div class="machines" role="group" aria-label="Available on">
+        <span class="muted small">Available on</span>
+        {% for b in t.badges %}<span class="badge {{ b.kind }}"{% if b.kind == "online" %} title="Remote copy: works from any machine"{% endif %}>{{ b.name }}</span>{% endfor %}
+      </div>
+      {% endif %}
       {% if t.choices %}
       <div class="machines" role="group" aria-label="Machine">
         <span class="muted small">Machine</span>
+        {% set pick = "online" if t.choices|selectattr("name", "equalto", "online")|list else t.choices[0].name %}
         {% for c in t.choices %}
-        <button type="button" class="chip{{ ' on' if loop.first }}" data-machine="{{ c.name }}"
+        <button type="button" class="chip{{ ' on' if c.name == pick }}" data-machine="{{ c.name }}"
                 {% if c.name == "online" %}title="Read the remote copy: works from any machine"{% endif %}>{{ c.name }}</button>
         {% endfor %}
       </div>
@@ -27,7 +34,7 @@
       <div class="codebox">
         <button class="copy" data-copy>Copy</button>
         {% if t.choices %}
-        {% for c in t.choices %}<pre data-machine-code="{{ c.name }}" {{ 'hidden' if not loop.first }}><code>{{ c.code }}</code></pre>{% endfor %}
+        {% for c in t.choices %}<pre data-machine-code="{{ c.name }}" {{ 'hidden' if c.name != pick }}><code>{{ c.code }}</code></pre>{% endfor %}
         {% else %}
         <pre><code>{{ t.code }}</code></pre>
         {% endif %}
@@ -41,6 +48,7 @@
 <section>
   <h2>Details</h2>
   <dl class="info">
+    {% if badges %}<dt>Available on</dt><dd>{% for b in badges %}<span class="badge {{ b.kind }}">{{ b.name }}</span> {% endfor %}</dd>{% endif %}
     <dt>Driver</dt><dd>{% if leaf.driver %}<span class="tag">{{ leaf.driver }}</span>{% else %}placeholder (no data){% endif %}</dd>
     {% if info.grid %}<dt>Grid</dt><dd>{{ info.grid }}</dd>{% endif %}
     {% if info.fixer %}<dt>Fixer</dt><dd>{{ info.fixer }}</dd>{% endif %}

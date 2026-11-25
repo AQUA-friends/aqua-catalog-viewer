@@ -5,6 +5,12 @@ Tabs per source:
   zarr/netcdf  -> AQUA, plain intake, YAML
   other        -> YAML
 
+`metadata.machine` (a string or list, inherited from the parent nodes, see load.py) overrides the
+automatic machine list: only the declared machines are shown, without the "may not be there" warning.
+Machines without values in machine.yaml use the catalog defaults. gsv/z3fdb are local access (declared
+machines only), polytope is online; for other drivers an "online" badge appears when the path or its
+defaults are remote URLs.
+
 Plain intake needs every {{ var }} of the source resolved. Source parameters have defaults;
 catalog-level variables (LRA_PATH, ZARR_PATH, ... declared under `metadata.parameters` of
 catalog.yaml) are machine dependent, so the intake tab carries one snippet per machine whose
@@ -68,6 +74,66 @@ def machine_choices(used, variables, machines):
     return out
 
 
+def canonical(name, machines):
+    """The machine.yaml spelling of `name` (case-insensitive), else `name` itself."""
+    for known in machines or {}:
+        if known.lower() == name.lower():
+            return known
+    return name
+
+
+def declared_machines(leaf, machines):
+    """(names, online): the machines declared in metadata.machine (machine.yaml spelling), or
+    None when the source declares nothing; `online` is True if "online" was listed."""
+    raw = leaf.get("machines_declared")
+    if not raw:
+        return None, False
+    names = list(dict.fromkeys(canonical(n, machines) for n in raw if n.lower() != ONLINE))
+    return names, any(n.lower() == ONLINE for n in raw)
+
+
+def is_online(leaf, variables):
+    """The source reads a remote copy: its catalog variables all default to URLs or, without
+    catalog variables, its path (source parameter defaults filled in) is a URL."""
+    used = catalog_vars_used(leaf)
+    if used:
+        defaults = [(variables or {}).get(v) for v in used]
+        return all(isinstance(d, str) and REMOTE.match(d) for d in defaults)
+    defaults = {k: param_default(p) for k, p in leaf["parameters"].items()}
+    args = leaf["args"]
+    path = args.get("urlpath") or args.get("path")
+    paths = path if isinstance(path, list) else [path]
+    paths = [TEMPLATE.sub(lambda m: str(defaults.get(m.group(1), m.group(0))), x) for x in paths if isinstance(x, str)]
+    return bool(paths) and all(REMOTE.match(x) for x in paths)
+
+
+def declared_choices(used, variables, machines, names, online):
+    """Like machine_choices, for declared machine names: the machine.yaml values when it sets every
+    variable, else the catalog defaults (None when the default is missing too: no snippet)."""
+    out = []
+    for name in names:
+        values = (machines or {}).get(name) or {}
+        paths = {v: values.get(v) if values.get(v) not in (None, "") else (variables or {}).get(v) for v in sorted(used)}
+        if all(x not in (None, "") for x in paths.values()):
+            out.append((name, paths, all(values.get(v) not in (None, "") for v in used)))
+    if online:
+        defaults = {v: (variables or {}).get(v) for v in sorted(used)}
+        out.append((ONLINE, defaults, False))
+    return out
+
+
+def machine_badges(leaf, variables, machines, online_ok=True):
+    """[{name, kind}]: machines (declared, else the automatic ones) then online."""
+    names, online_decl = declared_machines(leaf, machines)
+    used = catalog_vars_used(leaf)
+    if names is None:
+        names = [n for n, _ in machine_choices(used, variables, machines) if n != ONLINE] if used else []
+    badges = [{"name": n, "kind": "machine"} for n in names]
+    if online_ok and (online_decl or is_online(leaf, variables)):
+        badges.append({"name": ONLINE, "kind": "online"})
+    return badges
+
+
 def aqua_code(catalog, trail, repo_name, extra):
     model, exp, source = trail
     lines = [
@@ -96,7 +162,7 @@ MERGE_PATCH = [
 ]
 
 
-def intake_code(catalog, trail, repo_name, params, machine=None, paths=None, merge_keys=False):
+def intake_code(catalog, trail, repo_name, params, machine=None, paths=None, merge_keys=False, defaults=False):
     model, exp, source = trail
     lines = [
         "# Needs intake>=2.0.9, intake-xarray and jinja2",
@@ -114,7 +180,12 @@ def intake_code(catalog, trail, repo_name, params, machine=None, paths=None, mer
         "# cat[model][exp][source](...) silently ignores them in intake 2.",
     ]
     if paths:
-        where = "the remote copy (no machine needed)" if machine == ONLINE else f"{machine} (from machine.yaml)"
+        if machine == ONLINE:
+            where = "the remote copy (no machine needed)"
+        elif defaults:
+            where = f"{machine} (not set in machine.yaml: catalog defaults)"
+        else:
+            where = f"{machine} (from machine.yaml)"
         lines += ["# Catalog paths must be passed to the entry too; these are for " + where + "."]
     lines.append(f'entry = cat["{model}"]["{exp}"]._entries["{source}"]')
     if paths:
@@ -158,15 +229,36 @@ def intake_tab(repo_name, catalog, leaf, variables, machines):
     used = catalog_vars_used(leaf)
     merge = bool(leaf.get("merge_keys"))  # intake 2.0.9 needs a patch for `<<: *anchor`
     if not used:
-        return {**tab, "code": intake_code(catalog, trail, repo_name, params, merge_keys=merge)}
-    choices = [{"name": name, "code": intake_code(catalog, trail, repo_name, params, name, paths, merge)}
-               for name, paths in machine_choices(used, variables, machines)]
+        return {**tab, "badges": machine_badges(leaf, variables, machines),
+                "code": intake_code(catalog, trail, repo_name, params, merge_keys=merge)}
+    names, _ = declared_machines(leaf, machines)
+    if names is None:
+        choices = [{"name": name, "code": intake_code(catalog, trail, repo_name, params, name, paths, merge)}
+                   for name, paths in machine_choices(used, variables, machines)]
+        note = ("Paths come from the catalog's machine.yaml (online: the remote default of catalog.yaml). "
+                "A listed machine is not a promise that the whole dataset is there: only part of it "
+                "may be synced on that machine.")
+    else:
+        online = is_online(leaf, variables)  # a declared "online" with local defaults has no snippet
+        choices = [{"name": name, "code": intake_code(catalog, trail, repo_name, params, name, paths, merge,
+                                                      defaults=not own)}
+                   for name, paths, own in declared_choices(used, variables, machines, names, online)]
+        note = ("Machines are those declared in the source metadata. Paths come from the catalog's machine.yaml, "
+                "or from the catalog.yaml defaults when the machine is not described there.")
     if not choices:
         return None
-    return {**tab, "code": choices[0]["code"], "choices": choices,
-            "note": "Paths come from the catalog's machine.yaml (online: the remote default of catalog.yaml). "
-                    "A listed machine is not a promise that the whole dataset is there: only part of it "
-                    "may be synced on that machine."}
+    return {**tab, "code": choices[0]["code"], "choices": choices, "note": note}
+
+
+def availability(leaf, engines, variables=None, machines=None):
+    """Badges for the Details row: where the source can be read."""
+    if leaf["driver"] == "gsv":
+        names, _ = declared_machines(leaf, machines)
+        badges = [{"name": n, "kind": "machine"} for n in names or []]
+        if "polytope" in engines:
+            badges.append({"name": ONLINE, "kind": "online"})
+        return badges
+    return machine_badges(leaf, variables, machines)
 
 
 def leaf_tabs(repo_name, catalog, leaf, engines, variables=None, machines=None):
@@ -182,10 +274,15 @@ def leaf_tabs(repo_name, catalog, leaf, engines, variables=None, machines=None):
             for engine in engines:
                 kw = extra if engine == "gsv" else extra + [("engine", engine)]
                 label = "AQUA · gsv (default)" if engine == "gsv" else f"AQUA · {engine}"
-                tabs.append({"id": f"aqua-{engine}", "label": label, "lang": "python",
+                if engine == "polytope":
+                    badges = [{"name": ONLINE, "kind": "online"}]
+                else:  # gsv, z3fdb: local access, only where the metadata says
+                    badges = [{"name": n, "kind": "machine"} for n in declared_machines(leaf, machines)[0] or []]
+                tabs.append({"id": f"aqua-{engine}", "label": label, "lang": "python", "badges": badges,
                              "code": aqua_code(catalog, trail, repo_name, kw)})
         else:
             tabs.append({"id": "aqua", "label": "AQUA", "lang": "python",
+                         "badges": machine_badges(leaf, variables, machines),
                          "code": aqua_code(catalog, trail, repo_name, extra)})
             intake = intake_tab(repo_name, catalog, leaf, variables, machines)
             if intake:

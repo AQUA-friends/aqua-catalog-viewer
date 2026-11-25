@@ -30,6 +30,7 @@
   if (tabs) {
     const saved = store.get("tab");
     if (saved) showTab(saved);
+    // cached machine wins; otherwise the server-rendered default (online when offered)
     const machine = store.get("machine");
     if (machine) showMachine(machine);
   }
