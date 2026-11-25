@@ -24,6 +24,16 @@ validation problems are errors (`strict`), the AQUA engines offered for `gsv` so
 `blob_url` used for "view file" links, and optional per-repo `descriptions` (catalog name → one
 sentence shown on the homepage card; unknown names only produce a warning).
 
+## Machines (`metadata.machine`)
+
+A source, experiment or model may set `metadata.machine` to a name or a list of names (the nearest
+one up the tree wins; matching `machine.yaml` is case-insensitive). When present it replaces the
+automatic list (machines of `machine.yaml` that set the catalog variables) and the "may not be
+synced" warning. Machines not described in `machine.yaml` use the catalog defaults in their intake
+snippet. For `gsv`/`z3fdb` the declared machines are shown (local access) and `polytope` gets the
+`online` badge. For other drivers `online` appears when the path or its defaults are remote URLs,
+and it is the preselected machine unless the visitor chose another one before.
+
 ## Publish
 
 ### GitHub Actions (`.github/workflows/pages.yml`)

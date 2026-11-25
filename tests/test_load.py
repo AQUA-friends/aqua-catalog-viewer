@@ -87,6 +87,28 @@ class LoadTests(unittest.TestCase):
         self.assertEqual(cat["variables"], {"LRA_PATH": "/lra"})
         self.assertEqual(cat["machines"], {"levante": {"LRA_PATH": "/work/lra"}})
 
+    def test_metadata_machine_is_parsed_and_inherited(self):
+        files = dict(BASE)
+        files["c1/catalog/M1/main.yaml"] = MAIN.replace("{expid: '0001'}", "{expid: '0001', machine: [mn5, Levante, mn5]}")
+        repo, problems = load(files)
+        self.assertEqual(problems, [])
+        entries = {e["name"]: e for _, e in walk(repo["catalogs"][0]["children"])}
+        self.assertEqual(entries["exp-a"]["machines_declared"], ["mn5", "Levante"])
+        self.assertEqual(entries["base"]["machines_declared"], ["mn5", "Levante"])
+
+    def test_metadata_machine_string_and_bad_type(self):
+        files = {**BASE, "c1/catalog/M1/exp-a.yaml": """
+sources:
+  one: {driver: zarr, args: {urlpath: x}, metadata: {machine: MN5}}
+  bad: {driver: zarr, args: {urlpath: x}, metadata: {machine: {a: 1}}}
+  none: {driver: zarr, args: {urlpath: x}}
+"""}
+        repo, problems = load(files, strict=False)
+        entries = {e["name"]: e for _, e in walk(repo["catalogs"][0]["children"])}
+        self.assertEqual(entries["one"]["machines_declared"], ["MN5"])
+        self.assertIsNone(entries["bad"]["machines_declared"])
+        self.assertTrue(any("metadata.machine" in p["msg"] for p in problems))
+
     def test_metadata_levels_take_precedence_over_levelist(self):
         info = source_info({"metadata": {"levels": [1.0, 5.0, 10.0]},
                             "args": {"request": {"levtype": "o3d", "levelist": [1, 2, 3]}}})

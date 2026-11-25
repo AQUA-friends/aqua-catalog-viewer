@@ -8,6 +8,7 @@ Structure produced (see load_site):
               machines:  {machine: {name: value}} from the `intake:` blocks of machine.yaml
     entry   = node  {kind: "node", name, description, metadata, children, ...}
             | leaf  {kind: "source"|"placeholder", name, driver, args, info, merge_keys, ...}
+              every entry has machines_declared: metadata.machine (inherited from the parents) as a list, or None
 
 The YAML is parsed directly (no intake import, no data access). A source whose
 driver is `yaml_file_cat` is a node: its `args.path` is followed recursively, so
@@ -58,8 +59,20 @@ class Loader:
         return data
 
     # -- tree -------------------------------------------------------------
-    def load_file(self, path, trail, seen):
-        """Entries listed under `sources:` of one catalog file."""
+    def machines_of(self, value, where):
+        """`metadata.machine` as a deduplicated list of names (str or list of str), else None."""
+        if value is None:
+            return None
+        items = [value] if isinstance(value, str) else value
+        if not isinstance(items, list) or not all(isinstance(x, str) for x in items):
+            self.problem(where, f"metadata.machine must be a string or a list of strings, got {value!r}")
+            return None
+        names = list(dict.fromkeys(x.strip() for x in items if x.strip()))
+        return names or None
+
+    def load_file(self, path, trail, seen, machines=None):
+        """Entries listed under `sources:` of one catalog file. `machines` is the
+        `metadata.machine` inherited from the parent entries."""
         if path in seen or len(trail) > MAX_DEPTH:
             self.problem(path, "catalog cycle or nesting too deep", hard=True)
             return []
@@ -71,11 +84,11 @@ class Loader:
             self.problem(path, "`sources` is not a mapping", hard=True)
             return []
         return [
-            self.entry(name, spec if isinstance(spec, dict) else {}, path, trail + [name], seen | {path})
+            self.entry(name, spec if isinstance(spec, dict) else {}, path, trail + [name], seen | {path}, machines)
             for name, spec in sources.items()
         ]
 
-    def entry(self, name, spec, path, trail, seen):
+    def entry(self, name, spec, path, trail, seen, inherited=None):
         where = f"{path} :: {'/'.join(trail)}"
         driver = spec.get("driver")
         args = spec.get("args") or {}
@@ -89,10 +102,14 @@ class Loader:
         }
         if "driver" not in spec:
             self.problem(where, "source has no `driver`")
+        meta = out["metadata"] if isinstance(out["metadata"], dict) else {}
+        # nearest declaration wins: source, then experiment, then model
+        machines = self.machines_of(meta.get("machine"), where) or inherited
+        out["machines_declared"] = machines
 
         if driver == "yaml_file_cat":
             out["kind"] = "node"
-            out["children"] = self.follow(args.get("path"), path, where, trail, seen)
+            out["children"] = self.follow(args.get("path"), path, where, trail, seen, machines)
             return out
 
         out["kind"] = "placeholder" if driver is None else "source"
@@ -103,7 +120,7 @@ class Loader:
         self.validate_leaf(out, where)
         return out
 
-    def follow(self, target, path, where, trail, seen):
+    def follow(self, target, path, where, trail, seen, machines=None):
         if not isinstance(target, str):
             self.problem(where, "yaml_file_cat without `args.path`")
             return []
@@ -118,7 +135,7 @@ class Loader:
         if not target.exists():
             self.problem(where, f"referenced file not found: {target}", hard=True)
             return []
-        return self.load_file(target, trail, seen)
+        return self.load_file(target, trail, seen, machines)
 
     # -- validation (per driver) -------------------------------------------
     def validate_leaf(self, leaf, where):

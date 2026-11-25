@@ -1,6 +1,6 @@
 import unittest
 
-from viewer.snippets import fmt_date, install_blocks, leaf_tabs, plain_intake_ok
+from viewer.snippets import availability, fmt_date, install_blocks, leaf_tabs, plain_intake_ok
 
 ENGINES = ["gsv", "polytope", "z3fdb"]
 
@@ -103,6 +103,68 @@ class InstallTests(unittest.TestCase):
 
     def test_private_repo_is_editable_only(self):
         self.assertEqual([l for l, _ in install_blocks("Repo", "u", "cat", False)], ["Editable"])
+
+
+class MachineMetadataTests(unittest.TestCase):
+    VARS = {"LRA_PATH": "/pfs/lra"}
+    MACHINES = {"MN5": {"LRA_PATH": "/gpfs/lra"}, "levante": {"LRA_PATH": "/work/lra"}}
+
+    def netcdf(self, declared=None, path="{{ LRA_PATH }}/x.nc"):
+        l = leaf("netcdf", {"urlpath": path})
+        l["machines_declared"] = declared
+        return l
+
+    def intake(self, l, variables=None, machines=None):
+        tabs = leaf_tabs("Repo", "cat", l, ENGINES, variables or self.VARS, machines or self.MACHINES)
+        return {t["id"]: t for t in tabs}
+
+    def test_no_metadata_keeps_automatic_list_and_warning(self):
+        t = self.intake(self.netcdf())
+        self.assertEqual([c["name"] for c in t["intake"]["choices"]], ["MN5", "levante"])
+        self.assertIn("synced", t["intake"]["note"])
+
+    def test_declared_subset_replaces_list_case_insensitively(self):
+        t = self.intake(self.netcdf(["mn5"]))
+        self.assertEqual([c["name"] for c in t["intake"]["choices"]], ["MN5"])
+        self.assertNotIn("synced", t["intake"]["note"])
+        self.assertEqual([b["name"] for b in t["aqua"]["badges"]], ["MN5"])
+
+    def test_declared_extra_machine_uses_defaults(self):
+        t = self.intake(self.netcdf(["levante", "lumi"]))
+        names = [c["name"] for c in t["intake"]["choices"]]
+        self.assertEqual(names, ["levante", "lumi"])
+        lumi = t["intake"]["choices"][1]["code"]
+        self.assertIn("LRA_PATH='/pfs/lra'", lumi)
+        self.assertIn("catalog defaults", lumi)
+
+    def test_declared_machine_without_any_value_has_badge_but_no_snippet(self):
+        t = self.intake(self.netcdf(["lumi"]), variables={"LRA_PATH": None})
+        self.assertNotIn("intake", t)
+        self.assertEqual([b["name"] for b in t["aqua"]["badges"]], ["lumi"])
+
+    def test_gsv_machines_local_polytope_online(self):
+        l = leaf("gsv", {"request": {}})
+        l["machines_declared"] = ["MN5", "online"]
+        t = {x["id"]: x for x in leaf_tabs("Repo", "cat", l, ENGINES, {}, {"MN5": {}})}
+        self.assertEqual([b["name"] for b in t["aqua-gsv"]["badges"]], ["MN5"])
+        self.assertEqual([b["name"] for b in t["aqua-z3fdb"]["badges"]], ["MN5"])
+        self.assertEqual([(b["name"], b["kind"]) for b in t["aqua-polytope"]["badges"]], [("online", "online")])
+
+    def test_gsv_without_metadata_has_no_machine_badges(self):
+        t = {x["id"]: x for x in leaf_tabs("Repo", "cat", leaf("gsv", {"request": {}}), ENGINES)}
+        self.assertEqual(t["aqua-gsv"]["badges"], [])
+
+    def test_online_badge_for_remote_path_without_variables(self):
+        l = leaf("zarr", {"urlpath": "s3://b/{{ realization }}.zarr"}, {"realization": {"default": 1}})
+        l["machines_declared"] = None
+        t = {x["id"]: x for x in leaf_tabs("Repo", "cat", l, ENGINES)}
+        self.assertEqual([b["name"] for b in t["aqua"]["badges"]], ["online"])
+        self.assertEqual(availability(l, ENGINES), [{"name": "online", "kind": "online"}])
+
+    def test_online_chip_with_declared_machines(self):
+        l = self.netcdf(["levante"])
+        t = self.intake(l, variables={"LRA_PATH": "s3://b/lra"})
+        self.assertEqual([c["name"] for c in t["intake"]["choices"]], ["levante", "online"])
 
 
 if __name__ == "__main__":

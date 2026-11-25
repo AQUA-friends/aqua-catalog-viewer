@@ -21,7 +21,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from .load import load_site, repo_path, walk
 from .params import fetch_names
-from .snippets import fmt_date, install_blocks, leaf_tabs
+from .snippets import availability, fmt_date, install_blocks, leaf_tabs
 
 HERE = Path(__file__).parent
 PARAM_DB_URL = "https://codes.ecmwf.int/grib/param-db/"  # + ECMWF param id
@@ -140,7 +140,8 @@ class Builder:
         self.write(url, "source.html", crumbs=crumbs, leaf=leaf, info=info, period=period(info),
                    title=leaf["name"], tabs=leaf_tabs(rcfg["name"], cat["name"], leaf, self.engines,
                                   cat.get("variables"), cat.get("machines")),
-                   blob=blob, source_rel=str(rel))
+                   blob=blob, source_rel=str(rel),
+                   badges=availability(leaf, self.engines, cat.get("variables"), cat.get("machines")))
 
     def build_home(self):
         repos = []

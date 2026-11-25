@@ -135,3 +135,6 @@ details p { margin: .5rem 0 0; }
 .badge { display: inline-block; padding: 0 .55rem; border: 1px solid currentColor; border-radius: 999px; font-size: .78rem; }
 .badge.open { color: #4ade80; }
 .badge.private { color: #fbbf24; }
+.badge.machine { color: var(--muted); }
+.badge.online { color: #60a5fa; }
+.machines .badge { cursor: default; }
