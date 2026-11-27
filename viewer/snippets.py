@@ -5,11 +5,12 @@ Tabs per source:
   zarr/netcdf  -> AQUA, plain intake, YAML
   other        -> YAML
 
-`metadata.machine` (a string or list, inherited from the parent nodes, see load.py) overrides the
-automatic machine list: only the declared machines are shown, without the "may not be there" warning.
-Machines without values in machine.yaml use the catalog defaults. gsv/z3fdb are local access (declared
-machines only), polytope is online; for other drivers an "online" badge appears when the path or its
-defaults are remote URLs.
+`metadata.machine` (a string or list) of the source itself overrides the automatic machine list: only
+the declared machines are shown, without the "may not be there" warning. Machines without values in
+machine.yaml use the catalog defaults. For gsv sources the machine may also come from the experiment or
+model (see load.py): the AQUA gsv tab works only there, polytope and z3fdb are online. For other drivers
+the experiment-level machine is ignored (the machine.yaml list applies) and an "online" badge appears
+when the path or its defaults are remote URLs.
 
 Plain intake needs every {{ var }} of the source resolved. Source parameters have defaults;
 catalog-level variables (LRA_PATH, ZARR_PATH, ... declared under `metadata.parameters` of
@@ -85,7 +86,8 @@ def canonical(name, machines):
 def declared_machines(leaf, machines):
     """(names, online): the machines declared in metadata.machine (machine.yaml spelling), or
     None when the source declares nothing; `online` is True if "online" was listed."""
-    raw = leaf.get("machines_declared")
+    # gsv: the machine of the experiment applies too; other drivers only trust the source's own
+    raw = leaf.get("machines_declared" if leaf["driver"] == "gsv" else "machines_own")
     if not raw:
         return None, False
     names = list(dict.fromkeys(canonical(n, machines) for n in raw if n.lower() != ONLINE))
@@ -255,7 +257,7 @@ def availability(leaf, engines, variables=None, machines=None):
     if leaf["driver"] == "gsv":
         names, _ = declared_machines(leaf, machines)
         badges = [{"name": n, "kind": "machine"} for n in names or []]
-        if "polytope" in engines:
+        if any(e != "gsv" for e in engines):  # polytope, z3fdb
             badges.append({"name": ONLINE, "kind": "online"})
         return badges
     return machine_badges(leaf, variables, machines)
@@ -274,10 +276,10 @@ def leaf_tabs(repo_name, catalog, leaf, engines, variables=None, machines=None):
             for engine in engines:
                 kw = extra if engine == "gsv" else extra + [("engine", engine)]
                 label = "AQUA · gsv (default)" if engine == "gsv" else f"AQUA · {engine}"
-                if engine == "polytope":
-                    badges = [{"name": ONLINE, "kind": "online"}]
-                else:  # gsv, z3fdb: local access, only where the metadata says
+                if engine == "gsv":  # local access: only where the metadata says
                     badges = [{"name": n, "kind": "machine"} for n in declared_machines(leaf, machines)[0] or []]
+                else:  # polytope, z3fdb
+                    badges = [{"name": ONLINE, "kind": "online"}]
                 tabs.append({"id": f"aqua-{engine}", "label": label, "lang": "python", "badges": badges,
                              "code": aqua_code(catalog, trail, repo_name, kw)})
         else:

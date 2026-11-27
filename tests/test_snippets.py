@@ -111,7 +111,7 @@ class MachineMetadataTests(unittest.TestCase):
 
     def netcdf(self, declared=None, path="{{ LRA_PATH }}/x.nc"):
         l = leaf("netcdf", {"urlpath": path})
-        l["machines_declared"] = declared
+        l["machines_own"] = l["machines_declared"] = declared
         return l
 
     def intake(self, l, variables=None, machines=None):
@@ -142,13 +142,21 @@ class MachineMetadataTests(unittest.TestCase):
         self.assertNotIn("intake", t)
         self.assertEqual([b["name"] for b in t["aqua"]["badges"]], ["lumi"])
 
-    def test_gsv_machines_local_polytope_online(self):
+    def test_gsv_machines_only_on_gsv_tab_others_online(self):
         l = leaf("gsv", {"request": {}})
-        l["machines_declared"] = ["MN5", "online"]
+        l["machines_declared"] = ["MN5", "online"]  # e.g. inherited from the experiment
         t = {x["id"]: x for x in leaf_tabs("Repo", "cat", l, ENGINES, {}, {"MN5": {}})}
         self.assertEqual([b["name"] for b in t["aqua-gsv"]["badges"]], ["MN5"])
-        self.assertEqual([b["name"] for b in t["aqua-z3fdb"]["badges"]], ["MN5"])
-        self.assertEqual([(b["name"], b["kind"]) for b in t["aqua-polytope"]["badges"]], [("online", "online")])
+        for engine in ("aqua-polytope", "aqua-z3fdb"):
+            self.assertEqual([(b["name"], b["kind"]) for b in t[engine]["badges"]], [("online", "online")])
+        self.assertEqual([b["name"] for b in availability(l, ENGINES, {}, {"MN5": {}})], ["MN5", "online"])
+
+    def test_inherited_machine_ignored_for_other_drivers(self):
+        l = self.netcdf()
+        l["machines_declared"] = ["MN5"]  # from the experiment only: machines_own is None
+        t = self.intake(l)
+        self.assertEqual([c["name"] for c in t["intake"]["choices"]], ["MN5", "levante"])
+        self.assertIn("synced", t["intake"]["note"])
 
     def test_gsv_without_metadata_has_no_machine_badges(self):
         t = {x["id"]: x for x in leaf_tabs("Repo", "cat", leaf("gsv", {"request": {}}), ENGINES)}
