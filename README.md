@@ -26,13 +26,16 @@ sentence shown on the homepage card; unknown names only produce a warning).
 
 ## Machines (`metadata.machine`)
 
-A source, experiment or model may set `metadata.machine` to a name or a list of names (the nearest
-one up the tree wins; matching `machine.yaml` is case-insensitive). When present it replaces the
-automatic list (machines of `machine.yaml` that set the catalog variables) and the "may not be
-synced" warning. Machines not described in `machine.yaml` use the catalog defaults in their intake
-snippet. For `gsv`/`z3fdb` the declared machines are shown (local access) and `polytope` gets the
-`online` badge. For other drivers `online` appears when the path or its defaults are remote URLs,
-and it is the preselected machine unless the visitor chose another one before.
+A source's own `metadata.machine` (a name or a list; matching `machine.yaml` is case-insensitive)
+always wins: it replaces the automatic list (machines of `machine.yaml` that set the catalog
+variables) and the "may not be synced" warning. Machines not described in `machine.yaml` use the
+catalog defaults in their intake snippet.
+
+For `gsv` sources the machine may also be set on the experiment or model (nearest wins): the AQUA
+`gsv` tab then works only on that machine, while `polytope` and `z3fdb` are online. For other
+drivers an experiment-level machine is ignored and the `machine.yaml` list applies; `online` appears
+when the path or its defaults are remote URLs and is preselected unless the visitor chose another
+machine before.
 
 ## Publish
 

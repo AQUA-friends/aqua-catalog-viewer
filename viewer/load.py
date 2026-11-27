@@ -8,7 +8,8 @@ Structure produced (see load_site):
               machines:  {machine: {name: value}} from the `intake:` blocks of machine.yaml
     entry   = node  {kind: "node", name, description, metadata, children, ...}
             | leaf  {kind: "source"|"placeholder", name, driver, args, info, merge_keys, ...}
-              every entry has machines_declared: metadata.machine (inherited from the parents) as a list, or None
+              every entry has machines_own (its own metadata.machine) and machines_declared (own, else inherited from
+              the parents), as lists or None
 
 The YAML is parsed directly (no intake import, no data access). A source whose
 driver is `yaml_file_cat` is a node: its `args.path` is followed recursively, so
@@ -104,8 +105,10 @@ class Loader:
             self.problem(where, "source has no `driver`")
         meta = out["metadata"] if isinstance(out["metadata"], dict) else {}
         # nearest declaration wins: source, then experiment, then model
-        machines = self.machines_of(meta.get("machine"), where) or inherited
-        out["machines_declared"] = machines
+        own = self.machines_of(meta.get("machine"), where)
+        machines = own or inherited
+        out["machines_own"] = own  # the entry's own metadata: wins for every driver
+        out["machines_declared"] = machines  # own or inherited: only meaningful for gsv sources
 
         if driver == "yaml_file_cat":
             out["kind"] = "node"

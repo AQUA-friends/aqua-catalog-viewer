@@ -95,6 +95,8 @@ class LoadTests(unittest.TestCase):
         entries = {e["name"]: e for _, e in walk(repo["catalogs"][0]["children"])}
         self.assertEqual(entries["exp-a"]["machines_declared"], ["mn5", "Levante"])
         self.assertEqual(entries["base"]["machines_declared"], ["mn5", "Levante"])
+        self.assertIsNone(entries["base"]["machines_own"])  # inherited, not its own
+        self.assertEqual(entries["exp-a"]["machines_own"], ["mn5", "Levante"])
 
     def test_metadata_machine_string_and_bad_type(self):
         files = {**BASE, "c1/catalog/M1/exp-a.yaml": """
